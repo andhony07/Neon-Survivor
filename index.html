@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEON SURVIVOR</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c" aria-label="Game arena"></canvas>
+
+<div id="menu" class="ov">
+  <h1>NEON SURVIVOR</h1>
+  <div class="row">
+    <button id="b-start" class="btn pri" type="button">Start game</button>
+    <button id="b-how" class="btn" type="button" aria-expanded="false" aria-controls="how">Instructions</button>
+  </div>
+  <div id="how" class="box" hidden>
+    <p><b>Arrow keys</b> move &nbsp; <b>Mouse</b> aim &nbsp; <b>Z</b> (hold) shoot</p>
+    <p>Also works: WASD to move, left click to shoot.</p>
+    <p><b>Space</b> dash (invulnerable) &nbsp; <b>E</b> nova blast &nbsp; <b>P</b> pause</p>
+    <p>Kill enemies, grab the cyan XP gems, pick an upgrade each level. A boss arrives every 5 waves.</p>
+  </div>
+</div>
+
+<div id="lvl" class="ov" hidden>
+  <h2>LEVEL UP: choose one</h2>
+  <div id="cards" class="row"></div>
+</div>
+
+<div id="pause" class="ov" hidden>
+  <h2>PAUSED</h2>
+  <div class="row">
+    <button id="b-resume" class="btn pri" type="button">Resume</button>
+    <button id="b-pmenu" class="btn" type="button">Main menu</button>
+  </div>
+</div>
+
+<div id="over" class="ov" hidden>
+  <h2>SYSTEM FAILURE</h2>
+  <div class="box">
+    <p>Score: <b id="o-score"></b></p>
+    <p>Wave reached: <b id="o-wave"></b></p>
+    <p>Level reached: <b id="o-lvl"></b></p>
+    <p>Enemies defeated: <b id="o-kills"></b></p>
+  </div>
+  <div class="row">
+    <button id="b-again" class="btn pri" type="button">Restart</button>
+    <button id="b-omenu" class="btn" type="button">Main menu</button>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+:root{--bg:#060813;--cy:#00f0ff;--mg:#ff2bd6;--am:#ffd166;--tx:#dfe8ff;--mono:"Cascadia Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font:16px/1.5 var(--mono);overscroll-behavior:none}
+canvas{position:fixed;inset:0;display:block;cursor:crosshair}
+.ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:rgba(4,6,16,.78);padding:16px;text-align:center}
+.ov[hidden],[hidden]{display:none!important}
+h1{font-size:clamp(34px,8vw,84px);margin:0;letter-spacing:.1em;color:var(--cy);text-shadow:0 0 18px var(--cy),3px 0 var(--mg)}
+h2{font-size:clamp(22px,4vw,40px);margin:0;color:var(--mg);text-shadow:0 0 14px var(--mg)}
+.row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.box{border:1px solid #2a3a63;background:#0b1024;padding:14px 20px;max-width:560px}
+.box p{margin:6px 0}
+.btn{font:inherit;color:var(--tx);background:#0b1024;border:2px solid #2a3a63;padding:12px 22px;cursor:pointer}
+.btn:hover{border-color:var(--cy);color:var(--cy)}
+.btn.pri{background:var(--cy);color:#00161a;border-color:var(--cy);font-weight:700}
+.card{width:210px;min-height:140px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;text-align:left}
+.card b{color:var(--am)}
+.card kbd{margin-top:auto;color:var(--cy)}
+:focus-visible{outline:3px solid var(--am);outline-offset:2px}

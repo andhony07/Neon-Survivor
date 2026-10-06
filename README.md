@@ -49,6 +49,10 @@ How long can you last?
 | 🟣 **Shooter** | Medium | Low | Keeps its distance and fires |
 | 🟠 **Brute** | Slow | High | Heavy contact damage |
 | 🔵 **Tank** | Very slow | Massive | An unstoppable wall |
+| 💣 **Exploder** | Fast | Low | Blows up on contact or death |
+| 🌀 **Teleporter** | Medium | Low | Blinks around you every few seconds |
+| 🛡️ **Shield** | Slow | Medium | Frontal shield blocks most bullets; flank it |
+| ⭐ **Elite** | Varies | Varies | Gold ring: Armored, Swift or Volatile. Always drops a power-up |
 | ☠️ **Overlord** | Boss | Huge | See below |
 
 ## ☠️ BOSS: THE OVERLORD
@@ -64,6 +68,23 @@ Appears every **5 waves**. It gets stronger each time and changes tactics as you
 
 Beat it and the run keeps going. There is no ending, only harder waves.
 
+## 🎁 POWER-UPS
+
+Enemies sometimes drop a pickup (elites always do). Grab it before it fades.
+
+| Pickup | Effect |
+| :-- | :-- |
+| ❤️ Health | Heal 30 HP |
+| ⚡ Speed | +40% move speed for 7s |
+| 🔥 Damage | +60% damage for 8s |
+| 💥 Bomb | Hits every enemy for 150 and wipes enemy bullets |
+| 🧲 Magnet | Pulls in every XP gem |
+| ⏱️ Slow-mo | Enemies and their bullets at 45% speed for 5s |
+
+## 👑 BOSS REWARDS
+
+Beat the Overlord and pick 1 of 3 random rewards: Titan Core (+60% damage), Phase Armor (+60 max HP), Nova Overdrive (bigger, faster nova), Second Wind (one revive), Overdrive (30s buffs), or a Prototype Weapon (random evolved weapon).
+
 ## ⚡ UPGRADES
 
 Pick 1 of 3 random cards at every level-up.
@@ -78,6 +99,42 @@ Pick 1 of 3 random cards at every level-up.
 | 👻 **Dash Master** | -25% dash cooldown |
 | 💨 **Speed Boost** | +15% movement speed |
 | 🎯 **Multishot** | Chance to fire an extra bullet (stacks) |
+| 📌 **Piercing Rounds** | Bullets pierce +1 enemy (stacks) |
+| 🎲 **Critical Chance** | +12% chance to crit, max 80% |
+| 🗡️ **Critical Damage** | Crits deal +60% more damage |
+| 💣 **Blast Radius** | Explosions are 30% wider |
+| ☢️ **Blast Payload** | Explosions deal +50% damage |
+| 🛡️ **Armor Plating** | Take 10% less damage, max 60% |
+| 💚 **Regeneration** | Heal 1.5 HP per second |
+
+Cards tagged **CRIT**, **BLAST** or **TANK** count toward a build (see below). Once you hold a tagged card, more cards from that build show up more often.
+
+## 🧩 BUILDS AND SYNERGIES
+
+Every tagged card adds 1 point to its build. Hit a threshold and a **synergy** unlocks with a banner. The card shows your progress (for example `CRIT BUILD 2/3 → DEADEYE`), and the pause screen lists everything active. Crits show as big gold numbers with a `!`.
+
+| Build | Cards | 3 points | 5 points |
+| :-- | :-- | :-- | :-- |
+| 🎲 **CRIT** | Critical Chance, Critical Damage, Multishot, Piercing Rounds | **Deadeye**: every 5th shot is a guaranteed crit | **Executioner**: crits finish non-boss enemies under 25% HP and refund 1s of Nova cooldown |
+| 💥 **BLAST** | Explosive Ammo, Blast Radius, Blast Payload | **Chain Reaction**: enemies killed by an explosion explode too (up to 5 links) | **Napalm**: explosions set enemies on fire for 3s |
+| 🛡️ **TANK** | Reinforced Armor, Armor Plating, Regeneration | **Bulwark**: getting hit unleashes a knockback shockwave that also clears nearby enemy bullets | **Immovable**: standing still (0.4s) halves damage taken and adds +40% damage dealt |
+
+**Hybrids** (both builds at 3 points):
+
+| Hybrid | Needs | Effect |
+| :-- | :-: | :-- |
+| **Volatile Crits** | Crit 3 + Blast 3 | Every crit explodes |
+| **Reactive Plating** | Tank 3 + Blast 3 | Bulwark is 50% bigger and each enemy it hits explodes |
+
+## 🧬 WEAPON EVOLUTION
+
+Stack the right upgrades and a gold **EVOLVE** card appears at level-up. Take it and your pistol becomes something much nastier.
+
+| Evolution | Recipe | What it does |
+| :-- | :-- | :-- |
+| 🔫 **Minigun** | Rapid Fire x2 + Heavy Rounds | Huge fire rate, slight spread |
+| 💣 **Cluster Cannon** | Multishot + Explosive Ammo x2 | Slow shells blast, then burst into 6 bomblets |
+| ⚡ **Railgun** | Heavy Rounds x2 + Piercing Rounds | Fast piercing beam through every enemy |
 
 ## 🚀 HOW TO RUN
 
@@ -92,35 +149,18 @@ Then open `index.html` in any modern browser. No install, no build step, no serv
 
 ```
 neon-survivor/
-├── index.html   menus and canvas
-├── style.css    neon UI styling
-├── game.js      game loop, enemies, boss, upgrades, rendering
-└── assets/      reserved for sounds and sprites
+├── index.html   menu, upgrade cards, pause and game over screens
+├── style.css    overlay and card styling
+├── game.js      the whole game (canvas, audio, builds, bosses)
+└── README.md
 ```
 
-## 🛠️ UNDER THE HOOD
+## 🛣️ ROADMAP
 
-- `requestAnimationFrame` loop with delta time, so speed is independent of FPS
-- Fixed 1600×1000 arena scaled to any window size
-- Pure Canvas drawing: no images, no libraries
-- Particles, hit flashes, knockback and screen shake for game feel
-
-## 🗺️ ROADMAP
-
-- [ ] 🔊 Sound effects and music
-- [ ] 🧬 Weapon evolution
-- [ ] 👑 Elite enemies
-- [ ] 🎁 Boss drops
-- [ ] 🧑‍🚀 Multiple characters
-- [ ] 🌳 Skill tree
-- [ ] 🏆 Local high score
-
----
-
-<div align="center">
-
-**Made by [Andhony Saviyar S](https://github.com/andhony07)**
-
-If you survived past wave 10, you're good. ⭐ the repo!
-
-</div>
+- [x] Elites, power-ups, boss rewards
+- [x] Game feel: damage numbers, combo, sound, music, saved high score
+- [x] Builds and synergies (crit, blast, tank)
+- [ ] More bosses (a new one every 10 waves, arena hazards)
+- [ ] Characters
+- [ ] Multiple maps
+- [ ] Permanent progression between runs

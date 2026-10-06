@@ -16,3 +16,8 @@ h2{font-size:clamp(22px,4vw,40px);margin:0;color:var(--mg);text-shadow:0 0 14px 
 .card b{color:var(--am)}
 .card kbd{margin-top:auto;color:var(--cy)}
 :focus-visible{outline:3px solid var(--am);outline-offset:2px}
+.card.evo{border-color:var(--am);box-shadow:0 0 16px var(--am)}
+
+.card small{font-size:12px;letter-spacing:.04em}
+#p-build{text-align:left;max-width:640px}
+#p-build p{margin:4px 0;font-size:14px}

@@ -11,28 +11,34 @@
 
 <div id="menu" class="ov">
   <h1>NEON SURVIVOR</h1>
+  <p>High score: <b id="m-best">0</b></p>
   <div class="row">
     <button id="b-start" class="btn pri" type="button">Start game</button>
     <button id="b-how" class="btn" type="button" aria-expanded="false" aria-controls="how">Instructions</button>
+    <button class="btn mute" type="button">Sound: on</button>
   </div>
   <div id="how" class="box" hidden>
     <p><b>Arrow keys</b> move &nbsp; <b>Mouse</b> aim &nbsp; <b>Z</b> (hold) shoot</p>
     <p>Also works: WASD to move, left click to shoot.</p>
-    <p><b>Space</b> dash (invulnerable) &nbsp; <b>E</b> nova blast &nbsp; <b>P</b> pause</p>
+    <p><b>Space</b> dash (invulnerable) &nbsp; <b>E</b> nova blast &nbsp; <b>P</b> pause &nbsp; <b>M</b> mute</p>
+    <p><b>Evolutions:</b> Rapid Fire x2 + Heavy Rounds = Minigun &middot; Multishot + Explosive Ammo x2 = Cluster Cannon &middot; Heavy Rounds x2 + Piercing = Railgun. A gold card appears when you qualify.</p>
+    <p><b>Builds:</b> upgrades are tagged <b>CRIT</b>, <b>BLAST</b> or <b>TANK</b>. Take 3 of one tag for a synergy perk, 5 for a bigger one. Mix CRIT+BLAST or TANK+BLAST for hybrid perks.</p>
     <p>Kill enemies, grab the cyan XP gems, pick an upgrade each level. A boss arrives every 5 waves.</p>
   </div>
 </div>
 
 <div id="lvl" class="ov" hidden>
-  <h2>LEVEL UP: choose one</h2>
+  <h2 id="lvl-title">LEVEL UP: choose one</h2>
   <div id="cards" class="row"></div>
 </div>
 
 <div id="pause" class="ov" hidden>
   <h2>PAUSED</h2>
+  <div id="p-build" class="box"></div>
   <div class="row">
     <button id="b-resume" class="btn pri" type="button">Resume</button>
     <button id="b-pmenu" class="btn" type="button">Main menu</button>
+    <button class="btn mute" type="button">Sound: on</button>
   </div>
 </div>
 
@@ -43,6 +49,7 @@
     <p>Wave reached: <b id="o-wave"></b></p>
     <p>Level reached: <b id="o-lvl"></b></p>
     <p>Enemies defeated: <b id="o-kills"></b></p>
+    <p>High score: <b id="o-best"></b></p>
   </div>
   <div class="row">
     <button id="b-again" class="btn pri" type="button">Restart</button>

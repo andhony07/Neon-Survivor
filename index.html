@@ -11,18 +11,21 @@
 
 <div id="menu" class="ov">
   <h1>NEON SURVIVOR</h1>
-  <p>High score: <b id="m-best">0</b></p>
+  <p>High score: <b id="m-best">0</b> &nbsp;&middot;&nbsp; Cores: <b id="m-cores">0</b> &nbsp;&middot;&nbsp; Pilot: <b id="m-char">STRIKER</b></p>
   <div class="row">
     <button id="b-start" class="btn pri" type="button">Start game</button>
+    <button id="b-shop" class="btn" type="button">Upgrades</button>
     <button id="b-how" class="btn" type="button" aria-expanded="false" aria-controls="how">Instructions</button>
     <button class="btn mute" type="button">Sound: on</button>
   </div>
   <div id="how" class="box" hidden>
     <p><b>Arrow keys</b> move &nbsp; <b>Mouse</b> aim &nbsp; <b>Z</b> (hold) shoot</p>
     <p>Also works: WASD to move, left click to shoot.</p>
-    <p><b>Space</b> dash (invulnerable) &nbsp; <b>E</b> nova blast &nbsp; <b>P</b> pause &nbsp; <b>M</b> mute</p>
+    <p><b>Space</b> dash (invulnerable) &nbsp; <b>E</b> nova blast &nbsp; <b>P</b> / <b>Esc</b> pause &nbsp; <b>M</b> mute</p>
     <p><b>Evolutions:</b> Rapid Fire x2 + Heavy Rounds = Minigun &middot; Multishot + Explosive Ammo x2 = Cluster Cannon &middot; Heavy Rounds x2 + Piercing = Railgun. A gold card appears when you qualify.</p>
     <p><b>Builds:</b> upgrades are tagged <b>CRIT</b>, <b>BLAST</b> or <b>TANK</b>. Take 3 of one tag for a synergy perk, 5 for a bigger one. Mix CRIT+BLAST or TANK+BLAST for hybrid perks.</p>
+    <p><b>Pilots:</b> pick one when you start a run. Each leans into a build (Ace = crit, Blaze = blast, Bastion = tank, Ghost = dash damage). Unlock them with Cores.</p>
+    <p><b>Cores:</b> every run earns Cores (score, waves survived, bosses killed), even if you quit from the pause menu. Spend them in <b>Upgrades</b> for bonuses that last forever.</p>
     <p>Kill enemies, grab the cyan XP gems, pick an upgrade each level. A boss arrives every 5 waves.</p>
   </div>
 </div>
@@ -50,10 +53,29 @@
     <p>Level reached: <b id="o-lvl"></b></p>
     <p>Enemies defeated: <b id="o-kills"></b></p>
     <p>High score: <b id="o-best"></b></p>
+    <p>Pilot: <b id="o-char"></b></p>
+    <p>Cores earned: <b id="o-cores"></b></p>
   </div>
   <div class="row">
     <button id="b-again" class="btn pri" type="button">Restart</button>
+    <button id="b-oshop" class="btn" type="button">Upgrades</button>
     <button id="b-omenu" class="btn" type="button">Main menu</button>
+  </div>
+</div>
+<div id="chars" class="ov" hidden>
+  <h2>CHOOSE YOUR PILOT</h2>
+  <p>Cores: <b id="c-cores">0</b> &middot; Locked pilots unlock permanently</p>
+  <div id="char-list" class="row"></div>
+  <div class="row"><button id="b-cback" class="btn" type="button">Back</button></div>
+</div>
+
+<div id="shop" class="ov" hidden>
+  <h2>PERMANENT UPGRADES</h2>
+  <p>Cores: <b id="s-cores">0</b> &middot; Runs: <b id="s-runs">0</b> &middot; Best wave: <b id="s-wave">0</b></p>
+  <div id="shop-list" class="row"></div>
+  <div class="row">
+    <button id="b-sback" class="btn pri" type="button">Back</button>
+    <button id="b-sreset" class="btn" type="button">Reset progress</button>
   </div>
 </div>
 <script src="game.js"></script>

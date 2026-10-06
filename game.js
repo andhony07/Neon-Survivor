@@ -6,6 +6,7 @@ const $ = id => document.getElementById(id), cv = $('c'), ctx = cv.getContext('2
 const R = (a, b) => a + Math.random() * (b - a), RI = (a, b) => Math.floor(R(a, b + 1));
 const keys = {}, mouse = { x: W / 2, y: H / 2, down: false };
 let scale = 1, offX = 0, offY = 0, dpr = 1, last = 0;
+const calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const G = { state: 'menu', p: null, enemies: [], bullets: [], eb: [], orbs: [], fx: [], queue: [], shake: 0, flash: 0, banner: null };
 window.__G = G; // debug hook for testing
 
@@ -57,8 +58,8 @@ const UP = [
   { i: '\u{1F5E1}\uFE0F', n: 'Critical Damage', d: 'Crits deal +60% more damage', b: 'crit', f: p => { p.critDmg += .6; } },
   { i: '\u{1F4A3}', n: 'Blast Radius', d: 'Explosions are 30% wider', b: 'blast', f: p => { p.blastR += .3; } },
   { i: '\u2622\uFE0F', n: 'Blast Payload', d: 'Explosions deal +50% damage', b: 'blast', f: p => { p.blastD += .5; } },
-  { i: '\u{1F6E1}\uFE0F', n: 'Armor Plating', d: 'Take 10% less damage (max 60%)', b: 'tank', ok: p => p.armor < .6, f: p => { p.armor = Math.min(.6, p.armor + .1); } },
-  { i: '\u{1F49A}', n: 'Regeneration', d: 'Heal 1.5 HP per second', b: 'tank', f: p => { p.regen += 1.5; } }
+  { i: '\u{1F6E1}\uFE0F', n: 'Armor Plating', d: 'Take 5% less damage (max 30%)', b: 'tank', ok: p => p.armor < .3, f: p => { p.armor = Math.min(.3, p.armor + .05); } },
+  { i: '\u{1F49A}', n: 'Regeneration', d: 'Heal 0.5 HP per second', b: 'tank', f: p => { p.regen += .5; } }
 ];
 const SYN = [
   { id: 'deadeye', b: 'crit', at: 3, n: 'DEADEYE', d: 'Every 5th shot is a guaranteed crit', c: '#ffd166', test: bp => bp.crit >= 3 },
@@ -66,7 +67,7 @@ const SYN = [
   { id: 'chain', b: 'blast', at: 3, n: 'CHAIN REACTION', d: 'Enemies killed by an explosion explode too', c: '#ff7b3a', test: bp => bp.blast >= 3 },
   { id: 'napalm', b: 'blast', at: 5, n: 'NAPALM', d: 'Explosions set enemies on fire', c: '#ff7b3a', test: bp => bp.blast >= 5 },
   { id: 'bulwark', b: 'tank', at: 3, n: 'BULWARK', d: 'Getting hit unleashes a knockback shockwave', c: '#4cc9f0', test: bp => bp.tank >= 3 },
-  { id: 'immovable', b: 'tank', at: 5, n: 'IMMOVABLE', d: 'Standing still: take 50% less damage, deal +40% damage', c: '#4cc9f0', test: bp => bp.tank >= 5 },
+  { id: 'immovable', b: 'tank', at: 5, n: 'IMMOVABLE', d: 'Standing still: take 35% less damage, deal +40% damage', c: '#4cc9f0', test: bp => bp.tank >= 5 },
   { id: 'volatile', n: 'VOLATILE CRITS', d: 'HYBRID (Crit 3 + Blast 3): crits explode', c: '#ff2bd6', test: bp => bp.crit >= 3 && bp.blast >= 3 },
   { id: 'reactive', n: 'REACTIVE PLATING', d: 'HYBRID (Tank 3 + Blast 3): Bulwark is 50% bigger and explosive', c: '#ff2bd6', test: bp => bp.tank >= 3 && bp.blast >= 3 }
 ];
@@ -131,8 +132,66 @@ function setMute(m) {
 }
 const STREAKS = { 10: 'KILLING SPREE', 25: 'RAMPAGE', 50: 'UNSTOPPABLE', 100: 'GODLIKE' };
 
+/* ---------- Permanent progression (saved in the browser) ---------- */
+const MUP = [
+  { id: 'hp', i: '\u2764\uFE0F', n: 'Vital Core', d: '+10 max HP per level', max: 5, cost: l => 30 * (l + 1) },
+  { id: 'dmg', i: '\u{1F4A5}', n: 'Overcharge', d: '+5% damage per level', max: 5, cost: l => 40 * (l + 1) },
+  { id: 'spd', i: '\u{1F4A8}', n: 'Thrusters', d: '+3% move speed per level', max: 5, cost: l => 30 * (l + 1) },
+  { id: 'xp', i: '\u2B50', n: 'Data Siphon', d: '+8% XP gained per level', max: 5, cost: l => 50 * (l + 1) },
+  { id: 'crit', i: '\u{1F3B2}', n: 'Lucky Circuit', d: '+2% crit chance per level', max: 5, cost: l => 60 * (l + 1) },
+  { id: 'dash', i: '\u{1F47B}', n: 'Phase Drive', d: '-4% dash cooldown per level', max: 5, cost: l => 40 * (l + 1) },
+  { id: 'mag', i: '\u{1F9F2}', n: 'Gravity Well', d: '+10% XP pickup radius per level', max: 5, cost: l => 25 * (l + 1) },
+  { id: 'wind', i: '\u{1FA7A}', n: 'Second Wind', d: 'Start every run with one revive', max: 1, cost: () => 400 }
+];
+const CHARS = [
+  { id: 'striker', n: 'STRIKER', i: '\u2694\uFE0F', d: 'Balanced. No weaknesses, no tricks.', cost: 0, f: p => {} },
+  { id: 'ace', n: 'ACE', i: '\u{1F3AF}', d: 'CRIT: +15% crit chance, +0.4 crit damage, starts with 1 CRIT point. -20 max HP.', cost: 250,
+    f: p => { p.crit = Math.min(.8, p.crit + .15); p.critDmg += .4; p.bp.crit = 1; p.max -= 20; p.hp = p.max; } },
+  { id: 'blaze', n: 'BLAZE', i: '\u{1F525}', d: 'BLAST: starts with Explosive Ammo, explosions +25% wider and +25% damage, 1 BLAST point. -10 max HP.', cost: 250,
+    f: p => { p.expl = 1; p.ups['Explosive Ammo'] = 1; p.bp.blast = 1; p.blastR += .25; p.blastD += .25; p.max -= 10; p.hp = p.max; } },
+  { id: 'bastion', n: 'BASTION', i: '\u{1F6E1}\uFE0F', d: 'TANK: +50 max HP, 10% armor, regen 1 HP/s, starts with 1 TANK point. 10% slower.', cost: 250,
+    f: p => { p.max += 50; p.hp = p.max; p.armor += .1; p.regen += 1; p.bp.tank = 1; p.spd *= .9; } },
+  { id: 'ghost', n: 'GHOST', i: '\u{1F47B}', d: 'Dash cooldown -30%, +20% speed. Dashing through enemies damages them. -30 max HP.', cost: 400,
+    f: p => { p.dashCd *= .7; p.spd *= 1.2; p.ghost = true; p.max -= 30; p.hp = p.max; } }
+];
+function loadMeta() {
+  const m = { cores: 0, lv: {}, runs: 0, bestWave: 0, unl: {}, sel: 'striker' };
+  let o = {};
+  try { o = JSON.parse(localStorage.getItem('ns.meta') || '{}') || {}; } catch (e) { o = {}; }
+  const num = (v, hi) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.min(hi, Math.floor(v)) : 0);
+  m.cores = num(o.cores, 1e9); m.runs = num(o.runs, 1e9); m.bestWave = num(o.bestWave, 1e6);
+  const lv = o.lv && typeof o.lv === 'object' ? o.lv : {};
+  for (const u of MUP) m.lv[u.id] = Math.min(u.max, num(lv[u.id], u.max));
+  const un = o.unl && typeof o.unl === 'object' ? o.unl : {};
+  for (const c of CHARS) m.unl[c.id] = c.cost === 0 || un[c.id] === 1 ? 1 : 0;
+  const sc = CHARS.find(c => c.id === o.sel); m.sel = sc && m.unl[sc.id] ? sc.id : 'striker';
+  return m;
+}
+let meta = loadMeta();
+function saveMeta() { try { localStorage.setItem('ns.meta', JSON.stringify(meta)); } catch (e) {} }
+function buyMeta(id) {
+  const u = MUP.find(x => x.id === id);
+  if (!u || meta.lv[id] >= u.max) return false;
+  const c = u.cost(meta.lv[id]);
+  if (meta.cores < c) return false;
+  meta.cores -= c; meta.lv[id]++; saveMeta(); return true;
+}
+function applyMeta(p) {
+  const L = meta.lv;
+  p.max += 10 * L.hp; p.hp = p.max; p.dmg *= 1 + .05 * L.dmg; p.spd *= 1 + .03 * L.spd; p.xpMul = 1 + .08 * L.xp;
+  p.crit = .02 * L.crit; p.dashCd *= 1 - .04 * L.dash; p.mag += .1 * L.mag; p.revive += L.wind;
+}
+function coresFor() { return Math.floor(G.score / 50) + G.wave * 5 + G.bosses * 30; }
+function bankRun() {
+  if (G.banked || !G.p) return 0;
+  G.banked = true;
+  const earn = coresFor();
+  meta.cores = Math.min(1e9, meta.cores + earn); meta.runs++; meta.bestWave = Math.max(meta.bestWave, G.wave); saveMeta();
+  return earn;
+}
+
 /* ---------- Helpers ---------- */
-function ui(name) { ['menu', 'lvl', 'pause', 'over'].forEach(id => { $(id).hidden = id !== name; }); }
+function ui(name) { ['menu', 'lvl', 'pause', 'over', 'shop', 'chars'].forEach(id => { $(id).hidden = id !== name; }); }
 function burst(x, y, col, n, spd = 160, life = .5) {
   for (let i = 0; i < n && G.fx.length < 700; i++) {
     const a = R(0, TAU), s = R(.3, 1) * spd;
@@ -143,12 +202,14 @@ function ring(x, y, col, Rr, life = .35) { G.fx.push({ k: 'r', x, y, r: 0, R: Rr
 function banner(txt, col = '#00f0ff', t = 1.8, sub = '') { G.banner = { txt, col, l: t, max: t, sub }; }
 
 /* ---------- Game flow ---------- */
-function newGame() {
-  Object.assign(G, { state: 'play', t: 0, wave: 0, kills: 0, score: 0, shake: 0, flash: 0, warn: 0, clearT: 0, spT: 0, banner: null,
-    queue: [], enemies: [], bullets: [], eb: [], orbs: [], fx: [], pups: [], slowT: 0, reward: false, dn: [], combo: 0, comboT: 0, expDepth: 0, chainD: 0 });
+function newGame(id) {
+  const cd = CHARS.find(c => c.id === id && meta.unl[c.id]) || CHARS[0];
+  Object.assign(G, { char: cd.id, state: 'play', t: 0, wave: 0, kills: 0, score: 0, shake: 0, flash: 0, warn: 0, clearT: 0, spT: 0, banner: null,
+    queue: [], enemies: [], bullets: [], eb: [], orbs: [], fx: [], pups: [], slowT: 0, reward: false, dn: [], combo: 0, comboT: 0, expDepth: 0, chainD: 0, bosses: 0, banked: false });
   G.p = { x: W / 2, y: H / 2, r: 12, hp: 100, max: 100, spd: 260, dmg: 10, rate: 4, bspd: 760, cd: 0, dashCd: 2.2, dashRdy: 0, dashing: 0,
     dx: 1, dy: 0, ax: 1, ay: 0, inv: 0, spCd: 12, spRdy: 0, xp: 0, lvl: 1, need: 8, mag: 0, expl: 0, multi: 0, pierce: 0, weapon: 'pistol', ups: {}, revive: 0, novaPlus: 0, magT: 0, buff: { speed: 0, dmg: 0 },
-    crit: 0, critDmg: 2, blastR: 1, blastD: 1, armor: 0, regen: 0, bp: { crit: 0, blast: 0, tank: 0 }, syn: {}, shots: 0, still: 0 };
+    crit: 0, critDmg: 2, blastR: 1, blastD: 1, armor: 0, regen: 0, bp: { crit: 0, blast: 0, tank: 0 }, syn: {}, shots: 0, still: 0, xpMul: 1, ghost: false, dashHit: new Set() };
+  applyMeta(G.p); cd.f(G.p);
   ui(null);
   musicStart();
   startWave(1);
@@ -192,7 +253,7 @@ function spawnBoss() {
 function hurtPlayer(d) {
   const p = G.p;
   if (p.inv > 0) return;
-  if (p.syn.immovable && p.still > .4) d *= .5;
+  if (p.syn.immovable && p.still > .4) d *= .65;
   d = Math.max(1, d * (1 - p.armor));
   sfx.hurt(); p.hp -= d; p.inv = .5; G.shake = Math.max(G.shake, 10); G.flash = .25;
   burst(p.x, p.y, '#ff4d6d', 10);
@@ -203,6 +264,7 @@ function hurtPlayer(d) {
     const isNew = G.score > best;
     if (isNew) { best = G.score; try { localStorage.setItem('ns.best', String(best)); } catch (e) {} }
     $('o-best').textContent = (isNew ? 'NEW HIGH SCORE! ' : '') + best;
+    $('o-char').textContent = CHARS.find(c => c.id === G.char).n; const earn = bankRun(); $('o-cores').textContent = '+' + earn + ' (total ' + meta.cores + ')';
     $('o-score').textContent = G.score; $('o-wave').textContent = G.wave;
     $('o-lvl').textContent = p.lvl; $('o-kills').textContent = G.kills;
     ui('over'); $('b-again').focus();
@@ -220,10 +282,12 @@ function hitEnemy(e, dmg, kx, ky, crit, quiet) {
 }
 
 function kill(e) {
-  e.dead = true; G.kills++;
-  G.combo++; G.comboT = 2.5;
-  G.score += Math.round(e.pts * (1 + Math.min(1, Math.floor(G.combo / 10) * .1)));
-  if (STREAKS[G.combo]) { banner(STREAKS[G.combo] + '!', '#ffd166', 1.4); sfx.pick(); }
+  e.dead = true;
+  if (!e.suicide) {
+    G.kills++; G.combo++; G.comboT = 2.5;
+    G.score += Math.round(e.pts * (1 + Math.min(1, Math.floor(G.combo / 10) * .1)));
+    if (STREAKS[G.combo]) { banner(STREAKS[G.combo] + '!', '#ffd166', 1.4); sfx.pick(); }
+  }
   G.fx.push({ k: 'g', x: e.x, y: e.y, r: e.r, l: .25, max: .25 });
   if (e.boss) sfx.boom(); else sfx.kill();
   burst(e.x, e.y, e.col, e.boss ? 80 : 12, e.boss ? 400 : 180, e.boss ? 1 : .5);
@@ -231,12 +295,12 @@ function kill(e) {
   if (G.expDepth > 0 && G.p.syn.chain && G.chainD < 5 && !e.boss) {
     G.chainD++; explode(e.x, e.y, G.p.dmg * 2.5, 80 * G.p.blastR, 1); G.chainD--;
   }
-  if (!e.boss && (e.elite || Math.random() < .05)) G.pups.push({ x: e.x, y: e.y, k: PUP_BAG[RI(0, PUP_BAG.length - 1)], life: 12 });
+  if (!e.boss && !e.suicide && (e.elite || Math.random() < .05)) G.pups.push({ x: e.x, y: e.y, k: PUP_BAG[RI(0, PUP_BAG.length - 1)], life: 12 });
   if (e.boss) {
     for (let i = 0; i < 14; i++) G.orbs.push({ x: e.x + R(-50, 50), y: e.y + R(-50, 50), v: 6 });
-    G.shake = 30; G.score += 2000; G.p.hp = Math.min(G.p.max, G.p.hp + 40); G.reward = true;
+    G.bosses++; G.shake = 30; G.score += 2000; G.p.hp = Math.min(G.p.max, G.p.hp + 40); G.reward = true;
     ring(e.x, e.y, '#fff', 400, .7); banner('OVERLORD DEFEATED', '#ffd166', 2.5);
-  } else G.orbs.push({ x: e.x, y: e.y, v: e.xp });
+  } else if (!e.suicide) G.orbs.push({ x: e.x, y: e.y, v: e.xp });
 }
 
 function blast(x, y, rad, dmg) {
@@ -334,7 +398,7 @@ function fire() {
 function checkLevel() {
   const p = G.p;
   if (p.xp < p.need) return;
-  p.xp -= p.need; p.need = Math.round(p.need * 1.3 + 4); p.lvl++; sfx.lvl();
+  p.xp -= p.need; p.need = Math.round(p.need * 1.24 + 4); p.lvl++; sfx.lvl();
   const ready = p.weapon === 'pistol' ? EVO.filter(e => Object.keys(e.need).every(k => (p.ups[k] || 0) >= e.need[k])) : [];
   const evos = ready.map(e => ({ i: '\u2B50', n: 'EVOLVE: ' + WPN[e.id].n, d: e.d, evo: true, f: q => {
     q.weapon = e.id; G.shake = 25; ring(q.x, q.y, '#ffd166', 300, .6); burst(q.x, q.y, '#ffd166', 50, 300, .7);
@@ -389,11 +453,14 @@ function update(dt) {
   let mx = (k(['ArrowRight', 'KeyD']) ? 1 : 0) - (k(['ArrowLeft', 'KeyA']) ? 1 : 0), my = (k(['ArrowDown', 'KeyS']) ? 1 : 0) - (k(['ArrowUp', 'KeyW']) ? 1 : 0);
   const ml = Math.hypot(mx, my); if (ml) { mx /= ml; my /= ml; }
   if (keys.Space && p.dashRdy <= 0) {
-    p.dashRdy = p.dashCd; p.dashing = .16; sfx.dash(); p.inv = Math.max(p.inv, .25);
+    p.dashRdy = p.dashCd; p.dashing = .16; sfx.dash(); p.inv = Math.max(p.inv, .25); p.dashHit = new Set();
     p.dx = ml ? mx : p.ax; p.dy = ml ? my : p.ay;
   }
   if (keys.KeyE && p.spRdy <= 0) special();
-  if (p.dashing > 0) { p.dashing -= dt; p.x += p.dx * 900 * dt; p.y += p.dy * 900 * dt; burst(p.x, p.y, '#00f0ff', 1, 20, .25); }
+  if (p.dashing > 0) { p.dashing -= dt; p.x += p.dx * 900 * dt; p.y += p.dy * 900 * dt; burst(p.x, p.y, '#00f0ff', 1, 20, .25);
+    if (p.ghost) for (const e of G.enemies) if (!e.dead && !p.dashHit.has(e) && Math.hypot(e.x - p.x, e.y - p.y) < e.r + p.r + 8) {
+      p.dashHit.add(e); ring(e.x, e.y, '#b388ff', e.r + 20, .25); hitEnemy(e, 40 + p.lvl * 5, p.dx * 300, p.dy * 300);
+    } }
   else { const sp = p.spd * (p.buff.speed > 0 ? 1.4 : 1); p.x += mx * sp * dt; p.y += my * sp * dt; }
   p.x = Math.max(p.r, Math.min(W - p.r, p.x)); p.y = Math.max(p.r, Math.min(H - p.r, p.y));
   if (ml === 0 && p.dashing <= 0) p.still += dt; else p.still = 0;
@@ -461,7 +528,7 @@ function update(dt) {
         e.tp = R(2.2, 3.5); ring(e.x, e.y, '#00e5a0', 40, .3);
       }
     } else { e.x += dx / d * e.spd * dt; e.y += dy / d * e.spd * dt; }
-    if (e.type === 'exploder') { if (d < e.r + p.r + 6) kill(e); }
+    if (e.type === 'exploder') { if (d < e.r + p.r + 6) { e.suicide = true; kill(e); } }
     else if (d < e.r + p.r && e.cd <= 0) { e.cd = .6; hurtPlayer(e.dmg); }
   }
   // enemy bullets
@@ -476,7 +543,7 @@ function update(dt) {
   for (const o of G.orbs) {
     const dx = p.x - o.x, dy = p.y - o.y, d = Math.hypot(dx, dy) || 1;
     if (d < pr || p.magT > 0) { o.x += dx / d * 450 * dt; o.y += dy / d * 450 * dt; }
-    if (d < p.r + 8) { o.dead = true; p.xp += o.v; burst(p.x, p.y, '#00f0ff', 6, 100, .3); }
+    if (d < p.r + 8) { o.dead = true; p.xp += o.v * p.xpMul; burst(p.x, p.y, '#00f0ff', 6, 100, .3); }
   }
   for (const u of G.pups) {
     u.life -= dt;
@@ -509,7 +576,7 @@ function bar(x, y, w, h, f, col, label) {
 
 function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#060813'; ctx.fillRect(0, 0, cv.width, cv.height);
-  const sx = G.shake ? R(-G.shake, G.shake) : 0, sy = G.shake ? R(-G.shake, G.shake) : 0;
+  const sh = calm ? G.shake * .25 : G.shake, sx = sh ? R(-sh, sh) : 0, sy = sh ? R(-sh, sh) : 0;
   ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * (offX + sx * scale), dpr * (offY + sy * scale));
   ctx.fillStyle = '#0a0d1c'; ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = 'rgba(0,240,255,.07)'; ctx.lineWidth = 1; ctx.beginPath();
@@ -566,12 +633,18 @@ function render() {
   // HUD (no shake)
   ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * offX, dpr * offY);
   if (G.flash > 0) { ctx.fillStyle = 'rgba(255,40,80,' + G.flash * .8 + ')'; ctx.fillRect(0, 0, W, H); }
+  if (G.state === 'play' && p.hp / p.max < .3) {
+    const a = (.12 + .1 * Math.sin(G.t * 7)) * (1 - p.hp / p.max / .3 * .5);
+    const g = ctx.createRadialGradient(W / 2, H / 2, H * .35, W / 2, H / 2, H * .85);
+    g.addColorStop(0, 'rgba(255,40,80,0)'); g.addColorStop(1, 'rgba(255,40,80,' + a + ')');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
   bar(20, 20, 300, 22, p.hp / p.max, '#ff4d6d', 'HP ' + Math.ceil(p.hp) + '/' + p.max);
   bar(0, H - 14, W, 14, p.xp / p.need, '#00f0ff');
   bar(20, H - 70, 150, 14, 1 - p.dashRdy / p.dashCd, '#ffd166', 'DASH [SPACE]');
   bar(180, H - 70, 150, 14, 1 - p.spRdy / p.spCd, '#b388ff', 'NOVA [E]');
   ctx.fillStyle = '#dfe8ff'; ctx.font = '20px monospace'; ctx.textAlign = 'left';
-  ctx.fillText('LEVEL ' + p.lvl, 20, 66);
+  ctx.fillText('LEVEL ' + p.lvl + '  \u00B7  ' + CHARS.find(c => c.id === G.char).n, 20, 66);
   { const fx = []; if (p.buff.speed > 0) fx.push('SPEED ' + Math.ceil(p.buff.speed) + 's'); if (p.buff.dmg > 0) fx.push('DAMAGE ' + Math.ceil(p.buff.dmg) + 's');
     if (G.slowT > 0) fx.push('SLOW-MO ' + Math.ceil(G.slowT) + 's'); if (p.revive > 0) fx.push('SECOND WIND'); if (p.syn.immovable && p.still > .4) fx.push('IMMOVABLE');
     ctx.font = '15px monospace'; ctx.fillStyle = '#ffd166'; ctx.fillText(fx.join('  '), 20, 92); ctx.font = '20px monospace'; ctx.fillStyle = '#dfe8ff'; }
@@ -621,12 +694,60 @@ function togglePause() {
   if (G.state === 'play') { G.state = 'pause'; fillBuild(); ui('pause'); $('b-resume').focus(); }
   else if (G.state === 'pause') { G.state = 'play'; ui(null); }
 }
-function toMenu() { G.state = 'menu'; G.p = null; G.enemies = []; G.bullets = []; G.eb = []; G.orbs = []; G.fx = []; G.pups = []; G.dn = []; G.banner = null; musicStop(); $('m-best').textContent = best; ui('menu'); $('b-start').focus(); }
+function toMenu() { if (G.state === 'pause') bankRun(); G.state = 'menu'; G.p = null; G.enemies = []; G.bullets = []; G.eb = []; G.orbs = []; G.fx = []; G.pups = []; G.dn = []; G.banner = null; musicStop(); $('m-best').textContent = best; $('m-cores').textContent = meta.cores; $('m-char').textContent = CHARS.find(c => c.id === meta.sel).n; ui('menu'); $('b-start').focus(); }
+let resetTimer = null;
+function loadMeta0() { const m = { cores: 0, lv: {}, runs: 0, bestWave: 0, unl: {}, sel: 'striker' }; for (const u of MUP) m.lv[u.id] = 0; for (const c of CHARS) m.unl[c.id] = c.cost === 0 ? 1 : 0; return m; }
+function renderShop(focusId) {
+  const box = $('shop-list'); box.textContent = '';
+  $('s-cores').textContent = meta.cores; $('s-runs').textContent = meta.runs; $('s-wave').textContent = meta.bestWave;
+  for (const u of MUP) {
+    const l = meta.lv[u.id], maxed = l >= u.max, cost = maxed ? 0 : u.cost(l);
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn card shop'; b.dataset.id = u.id; b.disabled = maxed || meta.cores < cost;
+    const n = document.createElement('b'); n.textContent = u.i + ' ' + u.n;
+    const d = document.createElement('span'); d.textContent = u.d;
+    const pips = document.createElement('small'); pips.textContent = '\u25CF'.repeat(l) + '\u25CB'.repeat(u.max - l) + '  ' + l + '/' + u.max;
+    const c = document.createElement('kbd'); c.textContent = maxed ? 'MAXED' : cost + ' cores';
+    b.append(n, d, pips, c);
+    b.addEventListener('click', () => { if (buyMeta(u.id)) { sfx.pick(); renderShop(u.id); } });
+    box.appendChild(b);
+  }
+  const f = focusId && box.querySelector('[data-id="' + focusId + '"]:not(:disabled)');
+  (f || box.querySelector(':not(:disabled)') || $('b-sback')).focus();
+}
+function renderChars(focusId) {
+  const box = $('char-list'); box.textContent = ''; $('c-cores').textContent = meta.cores;
+  CHARS.forEach((c, i) => {
+    const open = !!meta.unl[c.id], can = open || meta.cores >= c.cost;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn card char' + (c.id === meta.sel ? ' sel' : ''); b.dataset.id = c.id; b.disabled = !can;
+    const n = document.createElement('b'); n.textContent = c.i + ' ' + c.n;
+    const d = document.createElement('span'); d.textContent = c.d;
+    const k = document.createElement('kbd'); k.textContent = open ? 'Press ' + (i + 1) + ' to play' : 'Unlock: ' + c.cost + ' cores';
+    b.append(n, d, k);
+    b.addEventListener('click', () => {
+      if (meta.unl[c.id]) { meta.sel = c.id; saveMeta(); newGame(c.id); }
+      else if (meta.cores >= c.cost) { meta.cores -= c.cost; meta.unl[c.id] = 1; meta.sel = c.id; saveMeta(); sfx.lvl(); renderChars(c.id); }
+    });
+    box.appendChild(b);
+  });
+  const f = box.querySelector('[data-id="' + (focusId || meta.sel) + '"]:not(:disabled)');
+  (f || box.querySelector(':not(:disabled)') || $('b-cback')).focus();
+}
+function openChars() { G.state = 'chars'; ui('chars'); renderChars(); }
+function openShop() { G.state = 'shop'; ui('shop'); resetBtn(false); renderShop(); }
+function resetBtn(armed) {
+  clearTimeout(resetTimer); const b = $('b-sreset');
+  b.textContent = armed ? 'Click again to erase all upgrades' : 'Reset progress';
+  if (armed) resetTimer = setTimeout(() => resetBtn(false), 3000);
+}
 
 window.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code.startsWith('Arrow')) { if (G.state === 'play') e.preventDefault(); }
-  if (e.code === 'KeyP' && !e.repeat) togglePause();
+  if ((e.code === 'KeyP' || e.code === 'Escape') && !e.repeat) togglePause();
   if (e.code === 'KeyM' && !e.repeat) setMute(!muted);
+  if (e.code === 'Escape' && (G.state === 'shop' || G.state === 'chars')) toMenu();
+  if (G.state === 'chars' && /^Digit[1-9]$/.test(e.code)) { const b = $('char-list').children[+e.code.slice(5) - 1]; if (b && !b.disabled) b.click(); }
   if (G.state === 'lvl' && /^Digit[123]$/.test(e.code)) { const b = $('cards').children[+e.code.slice(5) - 1]; if (b) b.click(); }
   keys[e.code] = G.state === 'play' || e.code === 'KeyP' ? true : keys[e.code];
 });
@@ -639,15 +760,24 @@ cv.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('resize', resize);
 
 document.querySelectorAll('.mute').forEach(b => b.addEventListener('click', () => setMute(!muted)));
-setMute(muted); $('m-best').textContent = best;
-$('b-start').addEventListener('click', newGame);
-$('b-again').addEventListener('click', newGame);
+setMute(muted); $('m-best').textContent = best; $('m-cores').textContent = meta.cores; $('m-char').textContent = CHARS.find(c => c.id === meta.sel).n;
+$('b-start').addEventListener('click', openChars);
+$('b-cback').addEventListener('click', toMenu);
+$('b-shop').addEventListener('click', openShop);
+$('b-oshop').addEventListener('click', openShop);
+$('b-sback').addEventListener('click', toMenu);
+$('b-sreset').addEventListener('click', () => {
+  if ($('b-sreset').textContent === 'Reset progress') { resetBtn(true); return; }
+  meta = loadMeta0(); 
+  saveMeta(); resetBtn(false); renderShop();
+});
+$('b-again').addEventListener('click', () => newGame(G.char));
 $('b-resume').addEventListener('click', togglePause);
 $('b-pmenu').addEventListener('click', toMenu);
 $('b-omenu').addEventListener('click', toMenu);
 $('b-how').addEventListener('click', e => { const h = $('how'); h.hidden = !h.hidden; e.currentTarget.setAttribute('aria-expanded', String(!h.hidden)); });
 
-window.__T = { hitEnemy, kill, explode, hurtPlayer, bulwarkWave, updateSyn, pickUps, spawn, update, fire, newGame, UP, SYN, BUILDS };
+window.__T = { CHARS, openChars, renderChars, meta: () => meta, buyMeta, applyMeta, coresFor, bankRun, loadMeta, MUP, openShop, toMenu, hitEnemy, kill, explode, hurtPlayer, bulwarkWave, updateSyn, pickUps, spawn, update, fire, newGame, UP, SYN, BUILDS };
 resize(); ui('menu'); $('b-start').focus();
 requestAnimationFrame(frame);
 })();

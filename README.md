@@ -38,7 +38,7 @@ How long can you last?
 | 🔫 **Shoot** | Hold `Z` (left click also works) |
 | 💨 **Dash** (invulnerable) | `Space` |
 | 💥 **Nova blast** | `E` |
-| ⏸️ **Pause** | `P` |
+| ⏸️ **Pause** | `P` or `Esc` |
 
 ## 👾 ENEMIES
 
@@ -104,8 +104,8 @@ Pick 1 of 3 random cards at every level-up.
 | 🗡️ **Critical Damage** | Crits deal +60% more damage |
 | 💣 **Blast Radius** | Explosions are 30% wider |
 | ☢️ **Blast Payload** | Explosions deal +50% damage |
-| 🛡️ **Armor Plating** | Take 10% less damage, max 60% |
-| 💚 **Regeneration** | Heal 1.5 HP per second |
+| 🛡️ **Armor Plating** | Take 5% less damage, max 30% |
+| 💚 **Regeneration** | Heal 0.5 HP per second |
 
 Cards tagged **CRIT**, **BLAST** or **TANK** count toward a build (see below). Once you hold a tagged card, more cards from that build show up more often.
 
@@ -117,7 +117,7 @@ Every tagged card adds 1 point to its build. Hit a threshold and a **synergy** u
 | :-- | :-- | :-- | :-- |
 | 🎲 **CRIT** | Critical Chance, Critical Damage, Multishot, Piercing Rounds | **Deadeye**: every 5th shot is a guaranteed crit | **Executioner**: crits finish non-boss enemies under 25% HP and refund 1s of Nova cooldown |
 | 💥 **BLAST** | Explosive Ammo, Blast Radius, Blast Payload | **Chain Reaction**: enemies killed by an explosion explode too (up to 5 links) | **Napalm**: explosions set enemies on fire for 3s |
-| 🛡️ **TANK** | Reinforced Armor, Armor Plating, Regeneration | **Bulwark**: getting hit unleashes a knockback shockwave that also clears nearby enemy bullets | **Immovable**: standing still (0.4s) halves damage taken and adds +40% damage dealt |
+| 🛡️ **TANK** | Reinforced Armor, Armor Plating, Regeneration | **Bulwark**: getting hit unleashes a knockback shockwave that also clears nearby enemy bullets | **Immovable**: standing still (0.4s) cuts damage taken by 35% and adds +40% damage dealt |
 
 **Hybrids** (both builds at 3 points):
 
@@ -125,6 +125,37 @@ Every tagged card adds 1 point to its build. Hit a threshold and a **synergy** u
 | :-- | :-: | :-- |
 | **Volatile Crits** | Crit 3 + Blast 3 | Every crit explodes |
 | **Reactive Plating** | Tank 3 + Blast 3 | Bulwark is 50% bigger and each enemy it hits explodes |
+
+## 🧑‍🚀 PILOTS
+
+Pick a pilot when you start a run (`Start game` opens the pilot screen; number keys also work). Locked pilots unlock permanently with Cores. Restart keeps the pilot you chose. Each pilot leans into a build and starts with 1 point in it, so its first synergy comes one card sooner.
+
+| Pilot | Unlock | Perks | Drawback |
+| :-- | :-: | :-- | :-- |
+| ⚔️ **Striker** | Free | Balanced baseline | None |
+| 🎯 **Ace** | 250 | +15% crit chance, +0.4 crit damage, 1 CRIT point | -20 max HP |
+| 🔥 **Blaze** | 250 | Starts with Explosive Ammo, explosions +25% wider and +25% damage, 1 BLAST point | -10 max HP |
+| 🛡️ **Bastion** | 250 | +50 max HP, 10% armor, regen 1 HP/s, 1 TANK point | 10% slower |
+| 👻 **Ghost** | 400 | Dash cooldown -30%, +20% speed, dashing through enemies damages them (40 + 5 per level) | -30 max HP |
+
+## 💠 PERMANENT UPGRADES
+
+Every run earns **Cores**, win or lose. Quitting from the pause menu still pays out. Spend them in **Upgrades** (main menu or game over screen) on bonuses that apply to every future run. Progress is saved in your browser.
+
+**Cores earned** = score ÷ 50 + 5 per wave reached + 30 per Overlord killed.
+
+| Upgrade | Per level | Levels | Cost |
+| :-- | :-- | :-: | :-- |
+| ❤️ **Vital Core** | +10 max HP | 5 | 30, 60, 90, 120, 150 |
+| 💥 **Overcharge** | +5% damage | 5 | 40, 80, 120, 160, 200 |
+| 💨 **Thrusters** | +3% move speed | 5 | 30, 60, 90, 120, 150 |
+| ⭐ **Data Siphon** | +8% XP gained | 5 | 50, 100, 150, 200, 250 |
+| 🎲 **Lucky Circuit** | +2% crit chance | 5 | 60, 120, 180, 240, 300 |
+| 👻 **Phase Drive** | -4% dash cooldown | 5 | 40, 80, 120, 160, 200 |
+| 🧲 **Gravity Well** | +10% XP pickup radius | 5 | 25, 50, 75, 100, 125 |
+| 🩺 **Second Wind** | Start every run with one revive | 1 | 400 |
+
+`Esc` closes the shop. **Reset progress** needs two clicks and erases all upgrades, Cores and unlocked pilots (your high score stays).
 
 ## 🧬 WEAPON EVOLUTION
 
@@ -160,7 +191,7 @@ neon-survivor/
 - [x] Elites, power-ups, boss rewards
 - [x] Game feel: damage numbers, combo, sound, music, saved high score
 - [x] Builds and synergies (crit, blast, tank)
+- [x] Characters (5 pilots)
 - [ ] More bosses (a new one every 10 waves, arena hazards)
-- [ ] Characters
 - [ ] Multiple maps
-- [ ] Permanent progression between runs
+- [x] Permanent progression between runs

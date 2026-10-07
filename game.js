@@ -7,7 +7,7 @@ const R = (a, b) => a + Math.random() * (b - a), RI = (a, b) => Math.floor(R(a, 
 const keys = {}, mouse = { x: W / 2, y: H / 2, down: false };
 let scale = 1, offX = 0, offY = 0, dpr = 1, last = 0;
 const calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-const G = { state: 'menu', p: null, enemies: [], bullets: [], eb: [], orbs: [], fx: [], queue: [], shake: 0, flash: 0, banner: null };
+const G = { state: 'menu', p: null, enemies: [], bullets: [], eb: [], orbs: [], fx: [], queue: [], hazards: [], strikes: [], map: null, mapOff: 0, shake: 0, flash: 0, banner: null };
 window.__G = G; // debug hook for testing
 
 function resize() {
@@ -39,7 +39,7 @@ const REW = [
   { i: '\u{1FA7A}', n: 'Second Wind', d: 'ABILITY: revive once at 50% HP', f: q => { q.revive++; } },
   { i: '\u{1F680}', n: 'Overdrive', d: 'TEMPORARY: 30s of +60% damage and +40% speed', f: q => { q.buff.dmg = 30; q.buff.speed = 30; } },
   { i: '\u{1F52B}', n: 'Prototype Weapon', d: 'PERMANENT: swap to a random evolved weapon', f: q => {
-    const ids = Object.keys(WPN).filter(k => k !== 'pistol' && k !== q.weapon); q.weapon = ids[RI(0, ids.length - 1)];
+    const ids = Object.keys(WPN).filter(k => k !== 'pistol' && k !== q.weapon); q.weapon = ids[RI(0, ids.length - 1)]; q.unlockedWeapons.add(q.weapon);
     banner('NEW WEAPON: ' + WPN[q.weapon].n, '#ffd166', 2.5); } }
 ];
 const COST = { crawler: 1, swarm: 3, shooter: 2, brute: 4, tank: 8, exploder: 2, teleporter: 3, shield: 4 };
@@ -82,6 +82,20 @@ const EVO = [
   { id: 'cluster', d: 'Slow shells burst into a blast plus 6 bomblets.', need: { 'Multishot': 1, 'Explosive Ammo': 2 } },
   { id: 'rail', d: 'Piercing beam that punches through every enemy.', need: { 'Heavy Rounds': 2, 'Piercing Rounds': 1 } }
 ];
+const MAPS = [
+  { n: 'NEON CITY', tip: 'clean arena, hazards come later', from: 8, pool: ['laser', 'fire', 'electric', 'meteor'], bg: '#0a0d1c', grid: 'rgba(0,240,255,.07)', edge: '#00f0ff' },
+  { n: 'FACTORY', tip: 'fire vents and laser gates', from: 4, pool: ['fire', 'laser'], bg: '#14100a', grid: 'rgba(255,170,60,.08)', edge: '#ffaa3c' },
+  { n: 'CYBER LAB', tip: 'electric floors and laser gates', from: 4, pool: ['electric', 'laser'], bg: '#07140f', grid: 'rgba(90,255,170,.08)', edge: '#5affaa' },
+  { n: 'SPACE STATION', tip: 'meteor strikes and laser gates', from: 4, pool: ['meteor', 'laser'], bg: '#0a0a1c', grid: 'rgba(170,170,255,.07)', edge: '#aab0ff' },
+  { n: 'LAVA CORE', tip: 'fire vents and meteors', from: 4, pool: ['fire', 'meteor'], bg: '#1a0a08', grid: 'rgba(255,90,40,.09)', edge: '#ff5a28' }
+];
+const WPN_ORDER = ['pistol', 'minigun', 'cluster', 'rail'];
+const BOSS_VARIANTS = {
+  overlord: { name: 'OVERLORD', col: '#ff2bd6', hp: 2500, dmg: 25 },
+  dreadnought: { name: 'DREADNOUGHT', col: '#ff7a18', hp: 3600, dmg: 32 },
+  voidreaper: { name: 'VOID REAPER', col: '#9b5cff', hp: 4700, dmg: 38 },
+  stormcore: { name: 'STORM CORE', col: '#00e5ff', hp: 6000, dmg: 44 }
+};
 
 /* ---------- Audio (Web Audio, no files) ---------- */
 let ac, muted = false, best = 0, lastHit = 0, mTimer = null, mStep = 0;
@@ -205,9 +219,9 @@ function banner(txt, col = '#00f0ff', t = 1.8, sub = '') { G.banner = { txt, col
 function newGame(id) {
   const cd = CHARS.find(c => c.id === id && meta.unl[c.id]) || CHARS[0];
   Object.assign(G, { char: cd.id, state: 'play', t: 0, wave: 0, kills: 0, score: 0, shake: 0, flash: 0, warn: 0, clearT: 0, spT: 0, banner: null,
-    queue: [], enemies: [], bullets: [], eb: [], orbs: [], fx: [], pups: [], slowT: 0, reward: false, dn: [], combo: 0, comboT: 0, expDepth: 0, chainD: 0, bosses: 0, banked: false });
+    queue: [], enemies: [], bullets: [], eb: [], orbs: [], fx: [], pups: [], hazards: [], strikes: [], map: null, mapOff: RI(0, MAPS.length - 1), slowT: 0, reward: false, dn: [], combo: 0, comboT: 0, expDepth: 0, chainD: 0, bosses: 0, banked: false });
   G.p = { x: W / 2, y: H / 2, r: 12, hp: 100, max: 100, spd: 260, dmg: 10, rate: 4, bspd: 760, cd: 0, dashCd: 2.2, dashRdy: 0, dashing: 0,
-    dx: 1, dy: 0, ax: 1, ay: 0, inv: 0, spCd: 12, spRdy: 0, xp: 0, lvl: 1, need: 8, mag: 0, expl: 0, multi: 0, pierce: 0, weapon: 'pistol', ups: {}, revive: 0, novaPlus: 0, magT: 0, buff: { speed: 0, dmg: 0 },
+    dx: 1, dy: 0, ax: 1, ay: 0, inv: 0, spCd: 12, spRdy: 0, xp: 0, lvl: 1, need: 8, mag: 0, expl: 0, multi: 0, pierce: 0, weapon: 'pistol', unlockedWeapons: new Set(['pistol']), ups: {}, revive: 0, novaPlus: 0, magT: 0, buff: { speed: 0, dmg: 0 },
     crit: 0, critDmg: 2, blastR: 1, blastD: 1, armor: 0, regen: 0, bp: { crit: 0, blast: 0, tank: 0 }, syn: {}, shots: 0, still: 0, xpMul: 1, ghost: false, dashHit: new Set() };
   applyMeta(G.p); cd.f(G.p);
   ui(null);
@@ -217,6 +231,8 @@ function newGame(id) {
 
 function startWave(n) {
   G.wave = n; G.queue = []; G.hm = 1 + .14 * (n - 1); G.sm = Math.min(1.6, 1 + .03 * (n - 1));
+  const mp = MAPS[(Math.floor((n - 1) / 5) + G.mapOff) % MAPS.length], newMap = G.map !== mp;
+  G.map = mp; setupHazards(n);
   const pool = ['crawler'];
   if (n >= 2) pool.push('swarm'); if (n >= 3) pool.push('shooter'); if (n >= 4) pool.push('brute'); if (n >= 6) pool.push('tank');
   if (n >= 3) pool.push('exploder'); if (n >= 5) pool.push('teleporter'); if (n >= 7) pool.push('shield');
@@ -228,7 +244,30 @@ function startWave(n) {
     budget -= COST[t];
     if (t === 'swarm') for (let i = 0; i < 8; i++) G.queue.push('swarm'); else G.queue.push(t);
   }
-  if (boss) { sfx.warn(); G.warn = 2.4; banner('WARNING: OVERLORD APPROACHING', '#ff2bd6', 2.4); } else banner('WAVE ' + n);
+  if (boss) {
+    const variant = bossVariantFor(n);
+    sfx.warn(); G.warn = 2.4;
+    banner('WARNING: ' + variant.name + ' APPROACHING', variant.col, 2.4);
+  } else banner('WAVE ' + n, '#00f0ff', newMap ? 2.6 : 1.8, newMap ? G.map.n + ': ' + G.map.tip : '');
+}
+
+function bossVariantFor(n) {
+  if (n >= 20) return BOSS_VARIANTS.stormcore;
+  if (n >= 15) return BOSS_VARIANTS.voidreaper;
+  if (n >= 10) return BOSS_VARIANTS.dreadnought;
+  return BOSS_VARIANTS.overlord;
+}
+
+function setupHazards(n) {
+  G.hazards = [];
+  const m = G.map;
+  if (n < m.from) return;
+  const count = Math.min(4, 1 + Math.floor((n - m.from) / 5));
+  for (let i = 0; i < count; i++) {
+    const kind = m.pool[RI(0, m.pool.length - 1)];
+    G.hazards.push({ kind, x: R(180, W - 180), y: R(150, H - 150), r: kind === 'laser' ? R(70, 120) : R(65, 105),
+      life: 999, phase: R(0, TAU), active: false, cd: R(1, 3), warning: 1.2 });
+  }
 }
 
 function spawn(type, x, y) {
@@ -244,9 +283,11 @@ function spawn(type, x, y) {
 }
 
 function spawnBoss() {
-  const b = G.wave / 5, hp = 2500 * (1 + .6 * (b - 1));
-  G.enemies.push({ type: 'boss', boss: true, x: W / 2, y: -80, r: 48, hp, max: hp, spd: 60, dmg: 25, col: '#ff2bd6', xp: 6, pts: 1500,
-    hit: 0, cd: 0, kx: 0, ky: 0, ph: 0, a: 0, rot: 0, sp: 0, t0: 2, t1: 2, t2: 5, t3: 0 });
+  const v = bossVariantFor(G.wave);
+  const scale = Math.max(1, 1 + .18 * (G.wave / 5 - 1));
+  const hp = v.hp * scale;
+  G.enemies.push({ type: 'boss', boss: true, bossName: v.name, x: W / 2, y: -80, r: 48, hp, max: hp, spd: 60, dmg: v.dmg, col: v.col, xp: 6, pts: 1500,
+    hit: 0, cd: 0, kx: 0, ky: 0, ph: 0, a: 0, rot: 0, sp: 0, t0: 2, t1: 2, t2: 5, t3: 0, variant: G.wave >= 20 ? 3 : G.wave >= 15 ? 2 : G.wave >= 10 ? 1 : 0 });
   G.shake = 20;
 }
 
@@ -299,7 +340,7 @@ function kill(e) {
   if (e.boss) {
     for (let i = 0; i < 14; i++) G.orbs.push({ x: e.x + R(-50, 50), y: e.y + R(-50, 50), v: 6 });
     G.bosses++; G.shake = 30; G.score += 2000; G.p.hp = Math.min(G.p.max, G.p.hp + 40); G.reward = true;
-    ring(e.x, e.y, '#fff', 400, .7); banner('OVERLORD DEFEATED', '#ffd166', 2.5);
+    ring(e.x, e.y, '#fff', 400, .7); banner((e.bossName || 'OVERLORD') + ' DEFEATED', '#ffd166', 2.5);
   } else if (!e.suicide) G.orbs.push({ x: e.x, y: e.y, v: e.xp });
 }
 
@@ -399,16 +440,16 @@ function checkLevel() {
   const p = G.p;
   if (p.xp < p.need) return;
   p.xp -= p.need; p.need = Math.round(p.need * 1.24 + 4); p.lvl++; sfx.lvl();
-  const ready = p.weapon === 'pistol' ? EVO.filter(e => Object.keys(e.need).every(k => (p.ups[k] || 0) >= e.need[k])) : [];
+  const ready = EVO.filter(e => !p.unlockedWeapons.has(e.id) && Object.keys(e.need).every(k => (p.ups[k] || 0) >= e.need[k]));
   const evos = ready.map(e => ({ i: '\u2B50', n: 'EVOLVE: ' + WPN[e.id].n, d: e.d, evo: true, f: q => {
-    q.weapon = e.id; G.shake = 25; ring(q.x, q.y, '#ffd166', 300, .6); burst(q.x, q.y, '#ffd166', 50, 300, .7);
+    q.weapon = e.id; q.unlockedWeapons.add(e.id); G.shake = 25; ring(q.x, q.y, '#ffd166', 300, .6); burst(q.x, q.y, '#ffd166', 50, 300, .7);
     banner('WEAPON EVOLVED: ' + WPN[e.id].n, '#ffd166', 2.5); } }));
   const choices = evos.concat(pickUps(3 - evos.length));
   showCards('LEVEL UP: choose one', choices);
 }
 
 function openReward() {
-  showCards('OVERLORD DEFEATED: claim a reward', REW.slice().sort(() => Math.random() - .5).slice(0, 3).map(r => Object.assign({ rw: true }, r)));
+  showCards('BOSS DEFEATED: claim a reward', REW.slice().sort(() => Math.random() - .5).slice(0, 3).map(r => Object.assign({ rw: true }, r)));
 }
 
 function showCards(title, choices) {
@@ -441,10 +482,88 @@ function bossAI(e, dt) {
   const d = Math.hypot(tx - e.x, ty - e.y) || 1;
   if (ph >= 2 || d > 300) { e.x += (tx - e.x) / d * sp * dt; e.y += (ty - e.y) / d * sp * dt; }
   const bl = (a, s) => G.eb.push({ x: e.x, y: e.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: 6, dmg: 12, life: 7 });
-  if ((e.t0 -= dt) <= 0) { e.t0 = [2.6, 2.2, 1.9, 1.6][ph]; e.rot += .3; const n = 12 + ph * 4; for (let i = 0; i < n; i++) bl(e.rot + i / n * TAU, 220); }
-  if (ph >= 1 && (e.t1 -= dt) <= 0) { e.t1 = 1.4; const a = Math.atan2(p.y - e.y, p.x - e.x); for (let i = -1; i <= 1; i++) bl(a + i * .22, 340); }
-  if (ph >= 2 && (e.t2 -= dt) <= 0) { e.t2 = 5; for (let i = 0; i < 3; i++) spawn('crawler', e.x + R(-60, 60), e.y + R(-60, 60)); }
-  if (ph === 3 && (e.t3 -= dt) <= 0) { e.t3 = .11; e.sp += .55; bl(e.sp, 250); }
+  const v = e.variant || 0;
+  const burstSpeed = v === 1 ? 270 : v === 2 ? 310 : v === 3 ? 340 : 220;
+  if ((e.t0 -= dt) <= 0) {
+    e.t0 = [2.6, 2.2, 1.9, 1.6][ph] * (v === 3 ? .72 : v === 2 ? .84 : 1);
+    e.rot += .3 + v * .08; const n = 12 + ph * 4 + v * 2;
+    for (let i = 0; i < n; i++) bl(e.rot + i / n * TAU, burstSpeed);
+  }
+  if (ph >= 1 && (e.t1 -= dt) <= 0) {
+    e.t1 = Math.max(.65, 1.4 - v * .15); const a = Math.atan2(p.y - e.y, p.x - e.x);
+    for (let i = -1; i <= 1; i++) bl(a + i * (.22 - v * .02), 340 + v * 45);
+    if (v >= 1) for (let i = -1; i <= 1; i++) bl(a + i * .55, 210 + v * 30);
+  }
+  if (ph >= 2 && (e.t2 -= dt) <= 0) {
+    e.t2 = Math.max(2.5, 5 - v * .5);
+    const amount = 3 + v;
+    for (let i = 0; i < amount; i++) spawn(v >= 2 ? (i % 2 ? 'shooter' : 'crawler') : 'crawler', e.x + R(-60, 60), e.y + R(-60, 60));
+  }
+  if (ph === 3 && (e.t3 -= dt) <= 0) {
+    e.t3 = Math.max(.055, .11 - v * .012); e.sp += .55 + v * .2; bl(e.sp, 250 + v * 45);
+  }
+  if (v >= 3 && Math.random() < dt * .8) {
+    const a = R(0, TAU); bl(a, 180); bl(a + Math.PI, 180);
+  }
+  bossSpecial(e, dt, ph);
+}
+
+function bossSpecial(e, dt, ph) {
+  const p = G.p, v = e.variant || 0;
+  if (!v) return;
+  const s = e.s = e.s || { t: 3, beam: null };
+  if (v === 1) { // DREADNOUGHT: telegraphed rotating laser beams
+    const bm = s.beam;
+    if (bm) {
+      if (bm.tel > 0) bm.tel -= dt;
+      else {
+        bm.on -= dt; bm.a += bm.spin * dt;
+        for (let i = 0; i < bm.n; i++) {
+          const a = bm.a + i * Math.PI, dx = p.x - e.x, dy = p.y - e.y;
+          if (dx * Math.cos(a) + dy * Math.sin(a) > 0 && Math.abs(dx * Math.sin(a) - dy * Math.cos(a)) < 11 + p.r) hurtPlayer(16);
+        }
+        if (bm.on <= 0) { s.beam = null; s.t = 4 - ph * .4; }
+      }
+    } else if ((s.t -= dt) <= 0 && ph >= 1) s.beam = { a: Math.atan2(p.y - e.y, p.x - e.x), tel: .9, on: 1.6, spin: (Math.random() < .5 ? -1 : 1) * (.8 + ph * .2), n: ph >= 3 ? 2 : 1 };
+  }
+  if (v === 2 && (s.t -= dt) <= 0) { // VOID REAPER: blinks next to you and releases homing orbs
+    s.t = 4.5 - ph * .4; ring(e.x, e.y, '#9b5cff', 120, .4);
+    const a = R(0, TAU); e.x = Math.max(80, Math.min(W - 80, p.x + Math.cos(a) * 320)); e.y = Math.max(80, Math.min(H - 80, p.y + Math.sin(a) * 320));
+    ring(e.x, e.y, '#9b5cff', 120, .4);
+    const n = 2 + ph;
+    for (let i = 0; i < n; i++) { const an = i / n * TAU + R(0, 1); G.eb.push({ x: e.x, y: e.y, vx: Math.cos(an) * 170, vy: Math.sin(an) * 170, r: 8, dmg: 10, life: 7, hom: true }); }
+  }
+  if (v === 3 && (s.t -= dt) <= 0) { // STORM CORE: telegraphed lightning strikes, one always on you
+    s.t = 3 - ph * .3;
+    for (let i = 0; i < 2 + ph; i++) G.strikes.push({ x: i === 0 ? p.x : R(100, W - 100), y: i === 0 ? p.y : R(100, H - 100), r: 70, tel: 1.0 });
+  }
+}
+
+function updateHazards(dt) {
+  const p = G.p, DMG = { fire: 4, electric: 7, laser: 10 };
+  for (const h of G.hazards) {
+    const was = h.warning;
+    h.cd -= dt; h.warning = Math.max(0, h.warning - dt); h.tick = (h.tick || 0) - dt;
+    if (h.cd <= 0) { h.cd = h.kind === 'meteor' ? R(2.8, 4.5) : R(1.8, 3.2); h.warning = h.kind === 'meteor' ? 1.0 : .65; h.active = false; }
+    if (h.warning > 0) continue;
+    h.active = true;
+    const inside = Math.hypot(p.x - h.x, p.y - h.y) < h.r + p.r;
+    if (h.kind === 'meteor') {
+      if (was > 0) {
+        ring(h.x, h.y, '#ff9f1c', h.r, .3); burst(h.x, h.y, '#ff9f1c', 24, 260, .4); G.shake = Math.max(G.shake, 10); sfx.boom();
+        if (inside) hurtPlayer(22);
+        for (const e of G.enemies) if (!e.dead && !e.boss && Math.hypot(e.x - h.x, e.y - h.y) < h.r + e.r) hitEnemy(e, 60, 0, 0);
+      }
+    } else if (inside && h.tick <= 0) { h.tick = .5; hurtPlayer(DMG[h.kind]); }
+  }
+  for (const s of G.strikes) {
+    s.tel -= dt;
+    if (s.tel <= 0) {
+      s.dead = true; ring(s.x, s.y, '#00e5ff', s.r, .3); burst(s.x, s.y, '#00e5ff', 26, 300, .4); G.shake = Math.max(G.shake, 8); sfx.boom();
+      if (Math.hypot(p.x - s.x, p.y - s.y) < s.r + p.r) hurtPlayer(24);
+    }
+  }
+  G.strikes = G.strikes.filter(s => !s.dead);
 }
 
 function update(dt) {
@@ -533,11 +652,16 @@ function update(dt) {
   }
   // enemy bullets
   for (const b of G.eb) {
+    if (b.hom) {
+      const a = Math.atan2(b.vy, b.vx); let df = Math.atan2(p.y - b.y, p.x - b.x) - a; df = Math.atan2(Math.sin(df), Math.cos(df));
+      const na = a + Math.max(-1.6 * dt, Math.min(1.6 * dt, df)), sp = Math.hypot(b.vx, b.vy); b.vx = Math.cos(na) * sp; b.vy = Math.sin(na) * sp;
+    }
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
     if (b.life <= 0 || b.x < -30 || b.x > W + 30 || b.y < -30 || b.y > H + 30) { b.dead = true; continue; }
     if (Math.hypot(b.x - p.x, b.y - p.y) < b.r + p.r) { b.dead = true; hurtPlayer(b.dmg); }
   }
   dt = rdt;
+  updateHazards(dt);
   // xp orbs
   const pr = 70 * (1 + p.mag);
   for (const o of G.orbs) {
@@ -578,14 +702,46 @@ function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#060813'; ctx.fillRect(0, 0, cv.width, cv.height);
   const sh = calm ? G.shake * .25 : G.shake, sx = sh ? R(-sh, sh) : 0, sy = sh ? R(-sh, sh) : 0;
   ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * (offX + sx * scale), dpr * (offY + sy * scale));
-  ctx.fillStyle = '#0a0d1c'; ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = 'rgba(0,240,255,.07)'; ctx.lineWidth = 1; ctx.beginPath();
+  const M = G.map || MAPS[0];
+  ctx.fillStyle = M.bg; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = M.grid; ctx.lineWidth = 1; ctx.beginPath();
   for (let x = 0; x <= W; x += 80) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
   for (let y = 0; y <= H; y += 80) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
   ctx.stroke();
-  ctx.strokeStyle = G.warn > 0 && Math.floor(G.t * 6) % 2 ? '#ff2bd6' : '#00f0ff'; ctx.lineWidth = 4; glow(ctx.strokeStyle, 14); ctx.strokeRect(2, 2, W - 4, H - 4); glow('transparent', 0);
+  ctx.strokeStyle = G.warn > 0 && Math.floor(G.t * 6) % 2 ? '#ff2bd6' : M.edge; ctx.lineWidth = 4; glow(ctx.strokeStyle, 14); ctx.strokeRect(2, 2, W - 4, H - 4); glow('transparent', 0);
   const p = G.p; if (!p) return;
 
+  // Arena hazards: gameplay-only overlays; HUD/layout remains unchanged.
+  for (const h of G.hazards) {
+    const pulse = .55 + .45 * Math.sin(G.t * 8 + h.phase);
+    const active = h.warning <= 0;
+    const col = h.kind === 'laser' ? '#ff2bd6' : h.kind === 'fire' ? '#ff7b3a' : h.kind === 'electric' ? '#00e5ff' : '#ff9f1c';
+    ctx.globalAlpha = active ? (.12 + .08 * pulse) : (.06 + .05 * pulse);
+    glow(col, 14);
+    circ(h.x, h.y, h.r, col);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = col; ctx.lineWidth = active ? 3 : 2;
+    ctx.setLineDash(active ? [] : [10, 10]);
+    ctx.beginPath(); ctx.arc(h.x, h.y, h.r, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    if (h.kind === 'laser') {
+      ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(G.t * .7 + h.phase);
+      ctx.strokeStyle = col; ctx.lineWidth = active ? 5 : 2; ctx.globalAlpha = active ? .7 : .35;
+      ctx.beginPath(); ctx.moveTo(-h.r, 0); ctx.lineTo(h.r, 0); ctx.stroke(); ctx.restore();
+    } else if (h.kind === 'meteor' && h.warning > 0) {
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 22px monospace'; ctx.textAlign = 'center'; ctx.globalAlpha = .8; ctx.fillText('!', h.x, h.y + 8);
+    }
+    glow('transparent', 0); ctx.globalAlpha = 1;
+  }
+  for (const s of G.strikes) {
+    ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 3; ctx.setLineDash([8, 8]); ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    ctx.globalAlpha = .12 + .25 * (1 - s.tel); ctx.fillStyle = '#00e5ff'; ctx.fill(); ctx.globalAlpha = 1;
+  }
+  for (const e of G.enemies) if (e.s && e.s.beam) {
+    const bm = e.s.beam; ctx.lineWidth = bm.tel > 0 ? 3 : 22; ctx.strokeStyle = bm.tel > 0 ? 'rgba(255,122,24,.55)' : '#ffb347';
+    if (bm.tel <= 0) glow('#ff7a18', 20);
+    for (let i = 0; i < bm.n; i++) { const a = bm.a + i * Math.PI; ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x + Math.cos(a) * 2200, e.y + Math.sin(a) * 2200); ctx.stroke(); }
+    glow('transparent', 0);
+  }
   for (const o of G.orbs) { const s = 6 + Math.sin(G.t * 8 + o.x) * 1.5; glow('#00f0ff', 10); ctx.fillStyle = '#00f0ff'; ctx.beginPath(); ctx.moveTo(o.x, o.y - s); ctx.lineTo(o.x + s, o.y); ctx.lineTo(o.x, o.y + s); ctx.lineTo(o.x - s, o.y); ctx.fill(); }
   glow('transparent', 0);
   for (const u of G.pups) {
@@ -664,7 +820,7 @@ function render() {
     ctx.font = '20px monospace'; ctx.fillStyle = '#dfe8ff';
   }
   const boss = G.enemies.find(e => e.boss);
-  if (boss) { ctx.textAlign = 'center'; ctx.fillStyle = '#ff2bd6'; ctx.fillText('OVERLORD', W / 2, 36); bar(W / 2 - 350, 46, 700, 16, boss.hp / boss.max, '#ff2bd6'); }
+  if (boss) { ctx.textAlign = 'center'; ctx.fillStyle = boss.col; ctx.fillText(boss.bossName || 'OVERLORD', W / 2, 36); bar(W / 2 - 350, 46, 700, 16, boss.hp / boss.max, boss.col); }
   if (G.banner) {
     ctx.globalAlpha = Math.min(1, G.banner.l / .4); ctx.textAlign = 'center'; ctx.font = 'bold 44px monospace';
     glow(G.banner.col, 16); ctx.fillStyle = G.banner.col; ctx.fillText(G.banner.txt, W / 2, H * .3); glow('transparent', 0);
@@ -690,6 +846,17 @@ function fillBuild() {
   if (act.length) act.forEach(s => add(s.n + ': ' + s.d, s.c)); else add('No synergies yet. Take 3 cards of one build (CRIT, BLAST or TANK).', '#7f8bb3');
   add('Crit ' + Math.round(p.crit * 100) + '% (x' + p.critDmg.toFixed(1) + ')  |  Blast radius +' + Math.round((p.blastR - 1) * 100) + '%, damage +' + Math.round((p.blastD - 1) * 100) + '%  |  Armor ' + Math.round(p.armor * 100) + '%  |  Regen ' + p.regen + '/s', '#7f8bb3');
 }
+function switchWeapon(index) {
+  const p = G.p;
+  if (!p || !p.unlockedWeapons) return;
+  const id = WPN_ORDER[index];
+  if (!id || !p.unlockedWeapons.has(id) || p.weapon === id) return;
+  p.weapon = id;
+  p.cd = 0;
+  sfx.pick();
+  banner('WEAPON: ' + WPN[id].n, WPN[id].col, 1.2);
+}
+
 function togglePause() {
   if (G.state === 'play') { G.state = 'pause'; fillBuild(); ui('pause'); $('b-resume').focus(); }
   else if (G.state === 'pause') { G.state = 'play'; ui(null); }
@@ -749,6 +916,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Escape' && (G.state === 'shop' || G.state === 'chars')) toMenu();
   if (G.state === 'chars' && /^Digit[1-9]$/.test(e.code)) { const b = $('char-list').children[+e.code.slice(5) - 1]; if (b && !b.disabled) b.click(); }
   if (G.state === 'lvl' && /^Digit[123]$/.test(e.code)) { const b = $('cards').children[+e.code.slice(5) - 1]; if (b) b.click(); }
+  if (G.state === 'play' && !e.repeat && /^Digit[1-4]$/.test(e.code)) switchWeapon(+e.code.slice(5) - 1);
   keys[e.code] = G.state === 'play' || e.code === 'KeyP' ? true : keys[e.code];
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
@@ -777,7 +945,7 @@ $('b-pmenu').addEventListener('click', toMenu);
 $('b-omenu').addEventListener('click', toMenu);
 $('b-how').addEventListener('click', e => { const h = $('how'); h.hidden = !h.hidden; e.currentTarget.setAttribute('aria-expanded', String(!h.hidden)); });
 
-window.__T = { CHARS, openChars, renderChars, meta: () => meta, buyMeta, applyMeta, coresFor, bankRun, loadMeta, MUP, openShop, toMenu, hitEnemy, kill, explode, hurtPlayer, bulwarkWave, updateSyn, pickUps, spawn, update, fire, newGame, UP, SYN, BUILDS };
+window.__T = { CHARS, openChars, renderChars, meta: () => meta, buyMeta, applyMeta, coresFor, bankRun, loadMeta, MUP, openShop, toMenu, hitEnemy, kill, explode, hurtPlayer, bulwarkWave, updateSyn, pickUps, spawn, update, fire, newGame, switchWeapon, UP, SYN, BUILDS };
 resize(); ui('menu'); $('b-start').focus();
 requestAnimationFrame(frame);
 })();

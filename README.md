@@ -68,6 +68,17 @@ Appears every **5 waves**. It gets stronger each time and changes tactics as you
 
 Beat it and the run keeps going. There is no ending, only harder waves.
 
+## ☠️ BOSS ROSTER
+
+A boss arrives every 5 waves. Each new boss keeps the Overlord's attacks, gets faster and tougher, and adds a signature move.
+
+| Boss | First seen | Signature attack |
+| :-- | :-: | :-- |
+| **Overlord** | Wave 5 | Bullet bursts, aimed volleys, crawler summons, spiral storm |
+| **Dreadnought** | Wave 10 | Telegraphed rotating laser beams (two at low HP) |
+| **Void Reaper** | Wave 15 | Blinks next to you and releases homing orbs |
+| **Storm Core** | Wave 20+ | Lightning strikes called down on your position |
+
 ## 🎁 POWER-UPS
 
 Enemies sometimes drop a pickup (elites always do). Grab it before it fades.
@@ -186,12 +197,16 @@ neon-survivor/
 └── README.md
 ```
 
-## 🛣️ ROADMAP
+## 🗺️ ARENAS
 
-- [x] Elites, power-ups, boss rewards
-- [x] Game feel: damage numbers, combo, sound, music, saved high score
-- [x] Builds and synergies (crit, blast, tank)
-- [x] Characters (5 pilots)
-- [ ] More bosses (a new one every 10 waves, arena hazards)
-- [ ] Multiple maps
-- [x] Permanent progression between runs
+The arena changes every 5 waves, and each run starts on a random one. Hazards telegraph before they hit.
+
+| Arena | Hazards | Starts at |
+| :-- | :-- | :-: |
+| **Neon City** | Any hazard, but late | Wave 8 |
+| **Factory** | Fire vents, laser gates | Wave 4 |
+| **Cyber Lab** | Electric floors, laser gates | Wave 4 |
+| **Space Station** | Meteor strikes, laser gates | Wave 4 |
+| **Lava Core** | Fire vents, meteors | Wave 4 |
+
+
